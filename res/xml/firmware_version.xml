@@ -21,6 +21,12 @@
     android:title="@string/firmware_version"
     settings:keywords="@string/keywords_android_version">
 
+    <!-- GenesisOS banner -->
+    <com.android.settingslib.widget.LayoutPreference
+        android:key="genesis_banner"
+        android:layout="@layout/genesis_banner"
+        android:selectable="false"/>
+
     <!-- Android version -->
     <Preference
         android:key="os_firmware_version"
@@ -30,13 +36,13 @@
         settings:searchable="false"
         settings:controller="com.android.settings.deviceinfo.firmwareversion.FirmwareVersionDetailPreferenceController"/>
 
-    <!-- Lineage version -->
+    <!-- GenesisOS version -->
     <Preference
-        android:key="lineage_version"
-        android:title="@*lineageos.platform:string/lineage_version"
+        android:key="genesis_firmware_version"
+        android:title="@string/genesis_firmware_version"
         android:summary="@string/summary_placeholder"
         settings:enableCopying="true"
-        settings:controller="com.android.settings.deviceinfo.firmwareversion.LineageVersionDetailPreferenceController"/>
+        settings:controller="com.android.settings.deviceinfo.firmwareversion.GenesisFirmwareVersionPreferenceController"/>
 
     <!-- Security patch -->
     <Preference
@@ -45,13 +51,13 @@
         settings:enableCopying="true"
         settings:controller="com.android.settings.deviceinfo.firmwareversion.SecurityPatchLevelPreferenceController"/>
 
-    <!-- Vendor security patch -->
+    <!-- GenesisOS Maintainer -->
     <Preference
-        android:key="vendor_security_key"
-        android:title="@*lineageos.platform:string/lineage_vendor_security_patch"
-        android:selectable="false"
+        android:key="genesis_maintainer"
+        android:title="@string/genesis_maintainer"
+        android:summary="@string/summary_placeholder"
         settings:enableCopying="true"
-        settings:controller="com.android.settings.deviceinfo.firmwareversion.LineageVendorSecurityPatchLevelPreferenceController"/>
+        settings:controller="com.android.settings.deviceinfo.firmwareversion.GenesisMaintainerPreferenceController"/>
 
     <!-- Mainline module version -->
     <!--
@@ -80,15 +86,6 @@
         android:selectable="false"
         settings:enableCopying="true"
         settings:controller="com.android.settings.deviceinfo.firmwareversion.KernelVersionPreferenceController"/>
-
-    <!-- Build date -->
-    <Preference
-        android:key="os_build_date"
-        android:title="@*lineageos.platform:string/build_date"
-        android:summary="@string/summary_placeholder"
-        android:selectable="false"
-        settings:enableCopying="true"
-        settings:controller="com.android.settings.deviceinfo.firmwareversion.LineageBuildDatePreferenceController"/>
 
     <!-- Build -->
     <Preference

@@ -19,6 +19,7 @@ package com.android.settings.notification;
 import static android.app.admin.DevicePolicyResources.Strings.Settings.WORK_PROFILE_SOUND_SETTINGS_SECTION_HEADER;
 
 import android.app.settings.SettingsEnums;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -27,11 +28,14 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.UserHandle;
 import android.preference.SeekBarVolumizer;
+import android.provider.Settings;
 import android.text.TextUtils;
 
 import androidx.annotation.VisibleForTesting;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
+import androidx.preference.PreferenceScreen;
+import androidx.preference.SwitchPreferenceCompat;
 
 import com.android.settings.R;
 import com.android.settings.RingtonePreference;
@@ -60,6 +64,9 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
 
     private static final String EXTRA_OPEN_PHONE_RINGTONE_PICKER =
             "EXTRA_OPEN_PHONE_RINGTONE_PICKER";
+
+    private static final String KEY_VOLUME_PANEL_ON_LEFT = "volume_panel_on_left";
+    private SwitchPreferenceCompat mVolumePanelOnLeft;
 
     @VisibleForTesting
     static final int STOP_SAMPLE = 1;
@@ -111,6 +118,15 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
         if (phoneRingTonePreference != null && openPhoneRingtonePicker) {
             onPreferenceTreeClick(phoneRingTonePreference);
         }
+
+        final PreferenceScreen prefScreen = getPreferenceScreen();
+        final android.content.ContentResolver resolver = getContentResolver();
+        final boolean volumePanelOnLeft = Settings.Secure.getIntForUser(resolver,
+                Settings.Secure.VOLUME_PANEL_ON_LEFT, 0, UserHandle.USER_CURRENT) != 0;
+        mVolumePanelOnLeft = prefScreen.findPreference(KEY_VOLUME_PANEL_ON_LEFT);
+        if (mVolumePanelOnLeft != null) {
+            mVolumePanelOnLeft.setChecked(volumePanelOnLeft);
+        }
     }
 
     @Override
@@ -135,6 +151,11 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
                     REQUEST_CODE,
                     null,
                     UserHandle.of(mRequestPreference.getUserId()));
+            return true;
+        } else if (preference == mVolumePanelOnLeft) {
+            Settings.Secure.putIntForUser(requireActivity().getContentResolver(),
+                    Settings.Secure.VOLUME_PANEL_ON_LEFT,
+                    mVolumePanelOnLeft.isChecked() ? 1 : 0, UserHandle.USER_CURRENT);
             return true;
         }
         return super.onPreferenceTreeClick(preference);
@@ -256,6 +277,7 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
 
         // === Phone & notification ringtone ===
         controllers.add(new PhoneRingtonePreferenceController(context));
+        controllers.add(new PhoneRingtone2PreferenceController(context));
         controllers.add(new AlarmRingtonePreferenceController(context));
         controllers.add(new NotificationRingtonePreferenceController(context));
 
@@ -278,6 +300,8 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
                 new EmergencyTonePreferenceController(context, fragment, lifecycle);
         final VibrateIconPreferenceController vibrateIconPreferenceController =
                 new VibrateIconPreferenceController(context, fragment, lifecycle);
+        final ScreenshotSoundPreferenceController screenshotSoundPreferenceController =
+                new ScreenshotSoundPreferenceController(context, fragment, lifecycle);
 
         controllers.add(dialPadTonePreferenceController);
         controllers.add(screenLockSoundPreferenceController);
@@ -288,6 +312,7 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
         controllers.add(dockAudioMediaPreferenceController);
         controllers.add(bootSoundPreferenceController);
         controllers.add(emergencyTonePreferenceController);
+        controllers.add(screenshotSoundPreferenceController);
         controllers.add(new PreferenceCategoryController(context,
                 "other_sounds_and_vibrations_category").setChildren(
                 Arrays.asList(dialPadTonePreferenceController,
@@ -298,7 +323,8 @@ public class SoundSettings extends DashboardFragment implements OnActivityResult
                         vibrateIconPreferenceController,
                         dockAudioMediaPreferenceController,
                         bootSoundPreferenceController,
-                        emergencyTonePreferenceController)));
+                        emergencyTonePreferenceController,
+                        screenshotSoundPreferenceController)));
 
         return controllers;
     }

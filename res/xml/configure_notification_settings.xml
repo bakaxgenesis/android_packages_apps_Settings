@@ -98,7 +98,7 @@
             android:summary="@string/lock_screen_notifs_redact_work_summary"
             settings:controller="com.android.settings.notification.RedactNotificationPreferenceController" />
 
-        <SwitchPreferenceCompat
+        <com.android.settingslib.RestrictedSwitchPreference
             android:key="notification_lockscreen_bypass"
             android:order="16"
             android:title="@string/lockscreen_bypass_title"
@@ -116,6 +116,12 @@
     <PreferenceCategory
         android:key="advanced_section_header"
         android:title="@string/advanced_section_header">
+
+        <com.genesis.support.preferences.SystemSettingSwitchPreference
+            android:key="notification_sound_vib_screen_on"
+            android:title="@string/notification_sound_vib_screen_on_title"
+            android:summary="@string/notification_sound_vib_screen_on_summary"
+            android:defaultValue="true" />
 
         <!--Adaptive Notifications-->
         <Preference
@@ -197,16 +203,12 @@
             settings:controller="com.android.settings.notification.NotificationAssistantPreferenceController"/>
 
         <!-- Heads up -->
-        <lineageos.preference.GlobalSettingSwitchPreference
+        <com.genesis.support.preferences.GlobalSettingSwitchPreference
             android:key="heads_up_notifications_enabled"
-            android:order="24"
-            android:title="@string/heads_up_notifications_enabled_title"
-            android:summary="@string/heads_up_notifications_enabled_summary" />
+            android:order="27"
+            android:title="@string/heads_up_title"
+            android:summary="@string/heads_up_summary"
+            android:defaultValue="false" />
 
-        <!-- Notification lights -->
-        <lineageos.preference.LineagePartsPreference
-            android:key="notification_lights"
-            settings:requiresConfig="@*android:bool/config_intrusiveNotificationLed"
-            settings:replacesKey="notification_pulse" />
     </PreferenceCategory>
 </PreferenceScreen>
