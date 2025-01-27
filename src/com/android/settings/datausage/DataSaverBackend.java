@@ -23,6 +23,7 @@ import android.content.Context;
 import android.net.NetworkPolicyManager;
 import android.util.SparseIntArray;
 
+import com.android.settings.fuelgauge.datasaver.DynamicDenylistManager;
 import com.android.settings.overlay.FeatureFactory;
 import com.android.settingslib.core.instrumentation.MetricsFeatureProvider;
 import com.android.settingslib.utils.ThreadUtils;
@@ -30,7 +31,6 @@ import com.android.settingslib.utils.ThreadUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 
 public class DataSaverBackend {
 
@@ -40,6 +40,7 @@ public class DataSaverBackend {
     private final MetricsFeatureProvider mMetricsFeatureProvider;
 
     private final NetworkPolicyManager mPolicyManager;
+    private final DynamicDenylistManager mDynamicDenylistManager;
     private final ArrayList<Listener> mListeners = new ArrayList<>();
     private SparseIntArray mUidPolicies = new SparseIntArray();
     private boolean mAllowlistInitialized;
@@ -51,6 +52,7 @@ public class DataSaverBackend {
         mContext = context.getApplicationContext();
         mMetricsFeatureProvider = FeatureFactory.getFeatureFactory().getMetricsFeatureProvider();
         mPolicyManager = NetworkPolicyManager.from(mContext);
+        mDynamicDenylistManager = DynamicDenylistManager.getInstance(mContext);
     }
 
     public void addListener(Listener listener) {
@@ -83,27 +85,28 @@ public class DataSaverBackend {
     }
 
     public void setIsAllowlisted(int uid, String packageName, boolean allowlisted) {
-        setUidPolicyFlag(uid, POLICY_ALLOW_METERED_BACKGROUND, allowlisted);
+        final int policy = allowlisted ? POLICY_ALLOW_METERED_BACKGROUND : POLICY_NONE;
+        mDynamicDenylistManager.setUidPolicyLocked(uid, policy);
+        mUidPolicies.put(uid, policy);
         if (allowlisted) {
-            mPolicyManager.addUidPolicy(uid, POLICY_ALLOW_METERED_BACKGROUND);
             mMetricsFeatureProvider.action(
                     mContext, SettingsEnums.ACTION_DATA_SAVER_WHITELIST, packageName);
-        } else {
-            mPolicyManager.removeUidPolicy(uid, POLICY_ALLOW_METERED_BACKGROUND);
         }
-        mPolicyManager.removeUidPolicy(uid, POLICY_REJECT_METERED_BACKGROUND);
     }
 
     public boolean isAllowlisted(int uid) {
         loadAllowlist();
-        return isUidPolicyFlagSet(uid, POLICY_ALLOW_METERED_BACKGROUND);
+        return mUidPolicies.get(uid, POLICY_NONE) == POLICY_ALLOW_METERED_BACKGROUND;
     }
 
     private void loadAllowlist() {
         if (mAllowlistInitialized) {
             return;
         }
-        loadUidPolicies(POLICY_ALLOW_METERED_BACKGROUND);
+
+        for (int uid : mPolicyManager.getUidsWithPolicy(POLICY_ALLOW_METERED_BACKGROUND)) {
+            mUidPolicies.put(uid, POLICY_ALLOW_METERED_BACKGROUND);
+        }
         mAllowlistInitialized = true;
     }
 
@@ -112,60 +115,28 @@ public class DataSaverBackend {
     }
 
     public void setIsDenylisted(int uid, String packageName, boolean denylisted) {
-        setUidPolicyFlag(uid, POLICY_REJECT_METERED_BACKGROUND, denylisted);
+        final int policy = denylisted ? POLICY_REJECT_METERED_BACKGROUND : POLICY_NONE;
+        mDynamicDenylistManager.setUidPolicyLocked(uid, policy);
+        mUidPolicies.put(uid, policy);
         if (denylisted) {
-            mPolicyManager.addUidPolicy(uid, POLICY_REJECT_METERED_BACKGROUND);
             mMetricsFeatureProvider.action(
                     mContext, SettingsEnums.ACTION_DATA_SAVER_BLACKLIST, packageName);
-        } else {
-            mPolicyManager.removeUidPolicy(uid, POLICY_REJECT_METERED_BACKGROUND);
         }
-        mPolicyManager.removeUidPolicy(uid, POLICY_ALLOW_METERED_BACKGROUND);
-    }
-
-    private void loadUidPolicies(int policy) {
-        final int[] uidsWithPolicy = mPolicyManager.getUidsWithPolicy(policy);
-        for (int uid : uidsWithPolicy) {
-            setCachedUidPolicyFlag(uid, policy, true);
-        }
-        for (int i = 0; i < mUidPolicies.size(); i++) {
-            final int uid = mUidPolicies.keyAt(i);
-            if (!Arrays.asList(uidsWithPolicy).contains(uid)) {
-                setCachedUidPolicyFlag(uid, policy, false);
-            }
-        }
-    }
-
-    private int setCachedUidPolicyFlag(int uid, int policy, boolean add) {
-        final int currentPolicy = mUidPolicies.get(uid, POLICY_NONE);
-        final int newPolicy = add ? (currentPolicy | policy) : (currentPolicy & ~policy);
-        mUidPolicies.put(uid, newPolicy);
-        return newPolicy;
-    }
-
-    private int setUidPolicyFlag(int uid, int policy, boolean add) {
-        if (add) {
-            mPolicyManager.addUidPolicy(uid, policy);
-        } else {
-            mPolicyManager.removeUidPolicy(uid, policy);
-        }
-        return setCachedUidPolicyFlag(uid, policy, add);
-    }
-
-    private boolean isUidPolicyFlagSet(int uid, int policy) {
-        return (mUidPolicies.get(uid, POLICY_NONE) & policy) == policy;
     }
 
     public boolean isDenylisted(int uid) {
         loadDenylist();
-        return isUidPolicyFlagSet(uid, POLICY_REJECT_METERED_BACKGROUND);
+        return mUidPolicies.get(uid, POLICY_NONE) == POLICY_REJECT_METERED_BACKGROUND
+                && mDynamicDenylistManager.isInManualDenylist(uid);
     }
 
     private void loadDenylist() {
         if (mDenylistInitialized) {
             return;
         }
-        loadUidPolicies(POLICY_REJECT_METERED_BACKGROUND);
+        for (int uid : mPolicyManager.getUidsWithPolicy(POLICY_REJECT_METERED_BACKGROUND)) {
+            mUidPolicies.put(uid, POLICY_REJECT_METERED_BACKGROUND);
+        }
         mDenylistInitialized = true;
     }
 
@@ -190,9 +161,6 @@ public class DataSaverBackend {
     private void handleUidPoliciesChanged(int uid, int newPolicy) {
         loadAllowlist();
         loadDenylist();
-
-        // We only care about allow/reject metered background policy here.
-        newPolicy &= POLICY_ALLOW_METERED_BACKGROUND | POLICY_REJECT_METERED_BACKGROUND;
 
         final int oldPolicy = mUidPolicies.get(uid, POLICY_NONE);
         if (newPolicy == POLICY_NONE) {

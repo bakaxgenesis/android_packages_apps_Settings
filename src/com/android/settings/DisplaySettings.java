@@ -24,6 +24,7 @@ import com.android.settings.dashboard.DashboardFragment;
 import com.android.settings.display.BrightnessLevelPreferenceController;
 import com.android.settings.display.CameraGesturePreferenceController;
 import com.android.settings.display.LiftToWakePreferenceController;
+import com.android.settings.display.PocketJudgePreferenceController;
 import com.android.settings.display.ShowOperatorNamePreferenceController;
 import com.android.settings.display.TapToWakePreferenceController;
 import com.android.settings.display.ThemePreferenceController;
@@ -33,18 +34,12 @@ import com.android.settingslib.core.AbstractPreferenceController;
 import com.android.settingslib.core.lifecycle.Lifecycle;
 import com.android.settingslib.search.SearchIndexable;
 
-import lineageos.hardware.LineageHardwareManager;
-
 import java.util.ArrayList;
 import java.util.List;
 
 @SearchIndexable(forTarget = SearchIndexable.ALL & ~SearchIndexable.ARC)
 public class DisplaySettings extends DashboardFragment {
     private static final String TAG = "DisplaySettings";
-
-    private static final String KEY_HIGH_TOUCH_POLLING_RATE = "high_touch_polling_rate_enable";
-    private static final String KEY_HIGH_TOUCH_SENSITIVITY = "high_touch_sensitivity_enable";
-    private static final String KEY_PROXIMITY_ON_WAKE = "proximity_on_wake";
 
     @Override
     public int getMetricsCategory() {
@@ -81,6 +76,7 @@ public class DisplaySettings extends DashboardFragment {
         final List<AbstractPreferenceController> controllers = new ArrayList<>();
         controllers.add(new CameraGesturePreferenceController(context));
         controllers.add(new LiftToWakePreferenceController(context));
+        controllers.add(new PocketJudgePreferenceController(context));
         controllers.add(new TapToWakePreferenceController(context));
         controllers.add(new VrDisplayPreferenceController(context));
         controllers.add(new ShowOperatorNamePreferenceController(context));
@@ -91,25 +87,6 @@ public class DisplaySettings extends DashboardFragment {
 
     public static final BaseSearchIndexProvider SEARCH_INDEX_DATA_PROVIDER =
             new BaseSearchIndexProvider(R.xml.display_settings) {
-
-                @Override
-                public List<String> getNonIndexableKeys(Context context) {
-                    List<String> keys = super.getNonIndexableKeys(context);
-                    LineageHardwareManager hardware = LineageHardwareManager.getInstance(context);
-                    if (!hardware.isSupported(
-                            LineageHardwareManager.FEATURE_HIGH_TOUCH_POLLING_RATE)) {
-                        keys.add(KEY_HIGH_TOUCH_POLLING_RATE);
-                    }
-                    if (!hardware.isSupported(
-                            LineageHardwareManager.FEATURE_HIGH_TOUCH_SENSITIVITY)) {
-                        keys.add(KEY_HIGH_TOUCH_SENSITIVITY);
-                    }
-                    if (!context.getResources().getBoolean(
-                            org.lineageos.platform.internal.R.bool.config_proximityCheckOnWake)) {
-                        keys.add(KEY_PROXIMITY_ON_WAKE);
-                    }
-                    return keys;
-                }
 
                 @Override
                 public List<AbstractPreferenceController> createPreferenceControllers(

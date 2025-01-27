@@ -629,8 +629,7 @@ public class ConfirmLockPassword extends ConfirmDeviceCredentialBaseActivity {
                                 mLockPatternUtils,
                                 mRemoteLockscreenValidationFragment.getLockscreenCredential(),
                                 /* currentCredential= */ null,
-                                mEffectiveUserId,
-                                mLockPatternUtils.getLockPatternSize(mEffectiveUserId));
+                                mEffectiveUserId);
                     } else {
                         mCredentialCheckResultTracker.setResult(/* matched= */ true, new Intent(),
                                 /* timeoutMs= */ 0, mEffectiveUserId);

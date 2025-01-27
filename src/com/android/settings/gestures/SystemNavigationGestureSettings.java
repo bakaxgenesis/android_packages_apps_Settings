@@ -59,10 +59,6 @@ import com.android.settingslib.widget.CandidateInfo;
 import com.android.settingslib.widget.IllustrationPreference;
 import com.android.settingslib.widget.SelectorWithWidgetPreference;
 
-import static com.android.systemui.shared.recents.utilities.Utilities.isLargeScreen;
-
-import lineageos.providers.LineageSettings;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,6 +72,8 @@ public class SystemNavigationGestureSettings extends RadioButtonPickerFragment i
     static final String KEY_SYSTEM_NAV_2BUTTONS = "system_nav_2buttons";
     @VisibleForTesting
     static final String KEY_SYSTEM_NAV_GESTURAL = "system_nav_gestural";
+
+    static final String KEY_SYSTEM_NAV = "system_nav_key";
 
     public static final String PREF_KEY_SUGGESTION_COMPLETE =
             "pref_system_navigation_suggestion_complete";
@@ -195,10 +193,13 @@ public class SystemNavigationGestureSettings extends RadioButtonPickerFragment i
                 // Don't add the settings button if that page will be blank.
                 && !PreferenceControllerListHelper.areAllPreferencesUnavailable(
                         getContext(), getPreferenceManager(), R.xml.button_navigation_settings)) {
+            Bundle arguments = new Bundle();
+            arguments.putString(KEY_SYSTEM_NAV, info.getKey());
             pref.setExtraWidgetOnClickListener((v) ->
                     new SubSettingLauncher(getContext())
                             .setDestination(ButtonNavigationSettingsFragment.class.getName())
                             .setSourceMetricsCategory(SettingsEnums.SETTINGS_GESTURE_SWIPE_UP)
+                            .setArguments(arguments)
                             .launch());
         }
     }
@@ -213,9 +214,6 @@ public class SystemNavigationGestureSettings extends RadioButtonPickerFragment i
         final Context c = getContext();
         List<CandidateInfoExtra> candidates = new ArrayList<>();
 
-        boolean isTaskbarEnabled = LineageSettings.System.getInt(getContext().getContentResolver(),
-                LineageSettings.System.ENABLE_TASKBAR, isLargeScreen(getContext()) ? 1 : 0) == 1;
-
         if (SystemNavigationPreferenceController.isOverlayPackageAvailable(c,
                 NAV_BAR_MODE_GESTURAL_OVERLAY)) {
             candidates.add(new CandidateInfoExtra(
@@ -223,7 +221,7 @@ public class SystemNavigationGestureSettings extends RadioButtonPickerFragment i
                     c.getText(R.string.edge_to_edge_navigation_summary),
                     KEY_SYSTEM_NAV_GESTURAL, true /* enabled */));
         }
-        if (!isTaskbarEnabled && SystemNavigationPreferenceController.isOverlayPackageAvailable(c,
+        if (SystemNavigationPreferenceController.isOverlayPackageAvailable(c,
                 NAV_BAR_MODE_2BUTTON_OVERLAY)) {
             candidates.add(new CandidateInfoExtra(
                     c.getText(R.string.swipe_up_to_switch_apps_title),
